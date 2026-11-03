@@ -40,7 +40,7 @@
             "name": "GeoLocation.RequestPermissions",
             "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.RequestPermissions",
             "android_params": [
-                "context"
+                "activity"
             ],
             "description": "Ask for location (and notifications on Android 13+); with background=true, ask for 'all the time'. Check CheckPermissions afterwards"
         },
@@ -96,7 +96,7 @@
             "name": "GeoLocation.OpenSettings",
             "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.OpenSettings",
             "android_params": [
-                "context"
+                "activity"
             ],
             "description": "Open Android's location settings or the app's settings page"
         }

@@ -66,6 +66,20 @@ Google Play asks apps that use background location for a declaration form and a 
 * No geofencing. Work out visits from the fixes in PHP.
 * A name close to NativePHP's own `Geolocation` facade: this one is `Blutrixx\GeoLocation\Facades\GeoLocation`, bridge functions `GeoLocation.*`. Do not install both in one app.
 
+## Device results
+
+Telpo M1K, Android 12, NativePHP Mobile 4.7.0, driven with `adb` (3 November 2026):
+
+| Check | Result |
+| --- | --- |
+| Permissions granted, `startTracking()` | Foreground service started (`foregroundServiceType` location), fused and GPS requested |
+| App swiped away, screen locked, 5 minutes | Service stayed alive and kept its location requests registered |
+| A fix arriving while the app was closed | Written to the buffer file (`{"lat":-6.7919,"lng":39.2083,"t":...,"provider":"gps","accuracy":8}`) |
+| `drain()` after reopening the app | Returned the fix and cursor 78; `status()` showed `lastFixAt` and `fixes: 1` |
+| `stopTracking()` | Service stopped |
+| Real satellite fixes | Not obtained: the test phone is a POS terminal indoors with no SIM and no network location, so fixes were injected with `cmd location providers` |
+| Reboot resume, battery drain, Android 13 and above | Not run |
+
 ## Tests
 
 `./vendor/bin/pest` checks the manifest against the Kotlin and PHP sources. Behaviour on a phone is tested with `adb` in a spike app.

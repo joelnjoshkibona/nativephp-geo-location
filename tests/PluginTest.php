@@ -57,6 +57,19 @@ describe('Plugin Manifest', function () {
     });
 });
 
+describe('Bridge parameters', function () {
+    it('passes an activity only to functions whose Kotlin class takes an Activity', function () {
+        $kotlin = file_get_contents($this->pluginPath.'/resources/android/GeoLocationFunctions.kt');
+
+        foreach ($this->manifest['bridge_functions'] as $function) {
+            $class = substr($function['android'], strrpos($function['android'], '.') + 1);
+            preg_match('/class '.$class.'\(private val (\w+): (\w+)\)/', $kotlin, $m);
+            expect($m)->not->toBeEmpty();
+            expect($function['android_params'][0])->toBe($m[2] === 'Activity' ? 'activity' : 'context');
+        }
+    });
+});
+
 describe('Kotlin sources', function () {
     it('all declare the plugin package', function () {
         foreach (glob($this->pluginPath.'/resources/android/*.kt') as $file) {
