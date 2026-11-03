@@ -1,0 +1,41 @@
+{
+    "name": "blutrixx/nativephp-geo-location",
+    "description": "NativePHP Mobile plugin: location in the foreground and in the background. A foreground service writes fixes to a buffer on the phone and PHP reads them later.",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Blutrixx"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0 || ^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Blutrixx\\GeoLocation\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Blutrixx\\GeoLocation\\GeoLocationServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0"
+    },
+    "scripts": {
+        "test": "pest"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

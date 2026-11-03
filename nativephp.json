@@ -1,0 +1,137 @@
+{
+    "name": "blutrixx/nativephp-geo-location",
+    "version": "1.0.0",
+    "description": "Location in the foreground and in the background. A foreground service writes fixes to a buffer on the phone and PHP reads them later.",
+    "namespace": "GeoLocation",
+    "keywords": [
+        "location",
+        "gps",
+        "tracking",
+        "background",
+        "foreground-service",
+        "android"
+    ],
+    "category": "utilities",
+    "license": "MIT",
+    "pricing": {
+        "type": "free"
+    },
+    "author": {
+        "name": "Blutrixx",
+        "url": ""
+    },
+    "homepage": "",
+    "repository": "",
+    "platforms": [
+        "android"
+    ],
+    "service_provider": "Blutrixx\\GeoLocation\\GeoLocationServiceProvider",
+    "events": [],
+    "bridge_functions": [
+        {
+            "name": "GeoLocation.CheckPermissions",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.CheckPermissions",
+            "android_params": [
+                "context"
+            ],
+            "description": "What the phone allows now: location, background location, notifications, location switched on, tracking running"
+        },
+        {
+            "name": "GeoLocation.RequestPermissions",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.RequestPermissions",
+            "android_params": [
+                "context"
+            ],
+            "description": "Ask for location (and notifications on Android 13+); with background=true, ask for 'all the time'. Check CheckPermissions afterwards"
+        },
+        {
+            "name": "GeoLocation.GetCurrentPosition",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.GetCurrentPosition",
+            "android_params": [
+                "context"
+            ],
+            "description": "One position now: a recent known one, or a fresh fix within the timeout"
+        },
+        {
+            "name": "GeoLocation.StartTracking",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.StartTracking",
+            "android_params": [
+                "context"
+            ],
+            "description": "Start the foreground service that records fixes to a buffer on the phone, also while the app is closed"
+        },
+        {
+            "name": "GeoLocation.StopTracking",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.StopTracking",
+            "android_params": [
+                "context"
+            ],
+            "description": "Stop the service; the buffer stays unless clearBuffer is true"
+        },
+        {
+            "name": "GeoLocation.Drain",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.Drain",
+            "android_params": [
+                "context"
+            ],
+            "description": "Read buffered fixes from a byte cursor; returns the fixes and the next cursor"
+        },
+        {
+            "name": "GeoLocation.Trim",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.Trim",
+            "android_params": [
+                "context"
+            ],
+            "description": "Drop buffered fixes before a cursor, after they are saved elsewhere"
+        },
+        {
+            "name": "GeoLocation.Status",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.Status",
+            "android_params": [
+                "context"
+            ],
+            "description": "Tracking state, last fix time, number of fixes, buffer size, last error"
+        },
+        {
+            "name": "GeoLocation.OpenSettings",
+            "android": "com.blutrixx.plugins.geolocation.GeoLocationFunctions.OpenSettings",
+            "android_params": [
+                "context"
+            ],
+            "description": "Open Android's location settings or the app's settings page"
+        }
+    ],
+    "android": {
+        "min_version": 26,
+        "permissions": [
+            "android.permission.ACCESS_FINE_LOCATION",
+            "android.permission.ACCESS_COARSE_LOCATION",
+            "android.permission.ACCESS_BACKGROUND_LOCATION",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_LOCATION",
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.RECEIVE_BOOT_COMPLETED"
+        ],
+        "services": [
+            {
+                "name": ".GeoLocationService",
+                "exported": false,
+                "foregroundServiceType": "location"
+            }
+        ],
+        "receivers": [
+            {
+                "name": ".GeoLocationBootReceiver",
+                "exported": true,
+                "intent_filters": [
+                    {
+                        "action": [
+                            "android.intent.action.BOOT_COMPLETED",
+                            "android.intent.action.MY_PACKAGE_REPLACED"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
