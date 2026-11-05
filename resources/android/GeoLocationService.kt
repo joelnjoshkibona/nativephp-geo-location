@@ -26,6 +26,7 @@ class GeoLocationService : Service() {
     private var manager: LocationManager? = null
     private val listeners = ArrayList<LocationListener>()
     private var lastTime = 0L
+    private var lastGpsAt = 0L   // when the last satellite fix arrived (wall clock)
 
     companion object {
         private const val TAG = "GeoLocation"
@@ -73,9 +74,12 @@ class GeoLocationService : Service() {
         manager = lm
         val providers = ArrayList<String>()
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && lm.isProviderEnabled(LocationManager.FUSED_PROVIDER)) providers.add(LocationManager.FUSED_PROVIDER)
+            val fused = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && lm.isProviderEnabled(LocationManager.FUSED_PROVIDER)
+            if (fused) providers.add(LocationManager.FUSED_PROVIDER)
             if ((cfg.highAccuracy || providers.isEmpty()) && lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) providers.add(LocationManager.GPS_PROVIDER)
-            if (providers.isEmpty() && lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) providers.add(LocationManager.NETWORK_PROVIDER)
+            // Before Android 12 there is no fused provider, and GPS alone gives almost nothing indoors or in a pocket (measured on an Infinix with
+            // Android 10: 7 fixes in 2 hours 15 minutes at a 2 minute interval). The network provider (Wi-Fi and cell towers) fills the gaps.
+            if ((!fused || providers.isEmpty()) && lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) providers.add(LocationManager.NETWORK_PROVIDER)
             if (providers.isEmpty()) {
                 fail("No location provider is switched on")
                 return
@@ -88,6 +92,7 @@ class GeoLocationService : Service() {
             GeoStore.setStat(this, "lastError", null)
             GeoStore.setStat(this, "providers", providers.joinToString(","))
             Log.d(TAG, "Recording with ${providers.joinToString(",")} every ${cfg.intervalSeconds}s / ${cfg.minDistanceMeters}m")
+            AppLogBridge.w('I', "location service started: ${providers.joinToString(",")} every ${cfg.intervalSeconds}s")
         } catch (e: SecurityException) {
             fail("Location permission is missing")
         }
@@ -96,6 +101,7 @@ class GeoLocationService : Service() {
     private fun fail(message: String) {
         Log.w(TAG, message)
         GeoStore.setStat(this, "lastError", message)
+        AppLogBridge.w('E', "location service cannot record: $message")
         stopUpdates()
     }
 
@@ -107,6 +113,9 @@ class GeoLocationService : Service() {
     private inner class Listener(private val cfg: Tracking) : LocationListener {
         override fun onLocationChanged(loc: Location) {
             if (loc.time <= lastTime) return
+            // a satellite fix is better than a network one: while GPS is delivering, the network fix of the same round is left out
+            if (loc.provider == LocationManager.GPS_PROVIDER) lastGpsAt = System.currentTimeMillis()
+            else if (loc.provider == LocationManager.NETWORK_PROVIDER && System.currentTimeMillis() - lastGpsAt < cfg.intervalSeconds * 1500L) return
             if (cfg.maxAccuracyMeters > 0 && loc.hasAccuracy() && loc.accuracy > cfg.maxAccuracyMeters) return
             lastTime = loc.time
             val fix = JSONObject().put("lat", loc.latitude).put("lng", loc.longitude).put("t", loc.time)
@@ -116,17 +125,29 @@ class GeoLocationService : Service() {
             if (loc.hasAltitude()) fix.put("altitude", loc.altitude)
             if (loc.hasBearing()) fix.put("heading", loc.bearing.toDouble())
             GeoStore.append(this@GeoLocationService, cfg.id, fix)
+            if (AppLogBridge.detailOn()) AppLogBridge.w('D', "fix ${loc.provider} accuracy=${if (loc.hasAccuracy()) loc.accuracy.toInt().toString() + "m" else "?"} total=${GeoStore.statLong(this@GeoLocationService, "fixes")}")
         }
 
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {}
+        override fun onProviderEnabled(provider: String) { AppLogBridge.w('I', "location provider $provider switched on") }
+        override fun onProviderDisabled(provider: String) { AppLogBridge.w('W', "location provider $provider switched off") }
 
         @Deprecated("Deprecated in Java")
         override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
     }
 
     override fun onDestroy() {
+        AppLogBridge.w('I', "location service stopped")
         stopUpdates()
         super.onDestroy()
     }
+}
+
+/**
+ * The app's log, if the device-utils plugin is in the app (by reflection: no dependency on it). Never write coordinates.
+ */
+private object AppLogBridge {
+    private val write = try { Class.forName("com.blutrixx.device.utils.AppLog").getMethod("write", Char::class.javaPrimitiveType, String::class.java, String::class.java) } catch (e: Throwable) { null }
+    private val detail = try { Class.forName("com.blutrixx.device.utils.AppLog").getMethod("detail") } catch (e: Throwable) { null }
+    fun w(level: Char, message: String) { try { write?.invoke(null, level, "places", message) } catch (e: Throwable) { } }
+    fun detailOn(): Boolean = try { (detail?.invoke(null) as? Boolean) ?: false } catch (e: Throwable) { false }
 }

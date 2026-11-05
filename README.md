@@ -43,7 +43,7 @@ GeoLocation::stopTracking('places');
 
 ## How it works
 
-* The service uses Android's fused provider (Android 12+), GPS and network location through the platform `LocationManager`, so it also works on phones without Google Play Services. A fix is written when the phone moved `minDistanceMeters` and at least `intervalSeconds` passed.
+* The service uses Android's fused provider (Android 12+), GPS and network location through the platform `LocationManager`, so it also works on phones without Google Play Services. Before Android 12 it listens to GPS and to the network provider (Wi-Fi, cell towers) together, because GPS alone gives few fixes indoors or in a pocket; a network fix is dropped while GPS is delivering. A fix is written when the phone moved `minDistanceMeters` and at least `intervalSeconds` passed.
 * Android requires an ongoing notification while a foreground service runs. It is what keeps recording alive, so it cannot be hidden: write its text in `config/geo-location.php`.
 * The settings of a running session are saved, so if Android kills the service it comes back by itself (`START_STICKY`), and the boot receiver starts it again after a restart or an app update. Android 12 and above can refuse to start a foreground service from the background; the error then appears in `status()['lastError']` and recording resumes when the app is opened.
 * Fixes are JSON lines in the app's private storage (`files/blutrixx_geo/<id>.jsonl`). Cursors are byte offsets.
