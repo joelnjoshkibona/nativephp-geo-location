@@ -124,6 +124,7 @@ class GeoLocationService : Service() {
             if (loc.hasSpeed()) fix.put("speed", loc.speed.toDouble())
             if (loc.hasAltitude()) fix.put("altitude", loc.altitude)
             if (loc.hasBearing()) fix.put("heading", loc.bearing.toDouble())
+            StatusBridge.snapshot(this@GeoLocationService)?.let { fix.put("st", it) }   // the phone's state at this moment (battery, network, signal), when device-utils is in the app
             GeoStore.append(this@GeoLocationService, cfg.id, fix)
             if (AppLogBridge.detailOn()) AppLogBridge.w('D', "fix ${loc.provider} accuracy=${if (loc.hasAccuracy()) loc.accuracy.toInt().toString() + "m" else "?"} total=${GeoStore.statLong(this@GeoLocationService, "fixes")}")
         }
@@ -150,4 +151,13 @@ private object AppLogBridge {
     private val detail = try { Class.forName("com.blutrixx.device.utils.AppLog").getMethod("detail") } catch (e: Throwable) { null }
     fun w(level: Char, message: String) { try { write?.invoke(null, level, "places", message) } catch (e: Throwable) { } }
     fun detailOn(): Boolean = try { (detail?.invoke(null) as? Boolean) ?: false } catch (e: Throwable) { false }
+}
+
+/**
+ * The phone's state (battery, network, signal), if the device-utils plugin is in the app (by reflection: no dependency on it).
+ * A short JSON object such as {"b":85,"c":1,"n":"w","s":3}; nothing that identifies the person or the place.
+ */
+private object StatusBridge {
+    private val snapshot = try { Class.forName("com.blutrixx.device.utils.DeviceStatus").getMethod("snapshot", android.content.Context::class.java) } catch (e: Throwable) { null }
+    fun snapshot(context: android.content.Context): JSONObject? = try { (snapshot?.invoke(null, context) as? String)?.let { JSONObject(it) } } catch (e: Throwable) { null }
 }
