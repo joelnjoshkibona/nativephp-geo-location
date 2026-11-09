@@ -10,7 +10,7 @@ namespace Blutrixx\GeoLocation;
  * A cursor is a byte offset into the buffer: keep the one drain() returns and pass it next time.
  *
  * Every method returns an array. A failed call returns ['status' => 'error', 'code' => ..., 'message' => ...].
- * A fix is ['lat', 'lng', 't' (epoch milliseconds), 'accuracy'?, 'speed'?, 'altitude'?, 'heading'?, 'provider'].
+ * A fix is ['lat', 'lng', 't' (epoch milliseconds), 'accuracy'?, 'speed'?, 'altitude'?, 'heading'?, 'provider', 'mv'?]. `mv` is 0 when the phone's motion sensors saw no motion for the last few minutes, 1 when they did, and absent when the phone has no such sensor.
  */
 class GeoLocation
 {

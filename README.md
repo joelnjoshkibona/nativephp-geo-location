@@ -64,6 +64,10 @@ Google Play asks apps that use background location for a declaration form and a 
 
 When `blutrixx/nativephp-device-utils` (1.9.0 or later) is in the app, each fix also carries `st`, a short reading of the phone taken at that moment: `{"b":85,"c":1,"n":"w","g":"4G","s":3,"p":0}` (battery percent, charging, network w = wifi, m = mobile, e = ethernet, x = none, mobile generation, signal 0 to 4, power saving). It is found by reflection, so without device-utils nothing changes and `st` is absent. It holds nothing that identifies the person or the place (no wifi names, no identifiers), and it arrives in `drain()` with the fix, so an app can keep a history of the phone's state taken with the app closed.
 
+## Was the phone still? (1.3.0)
+
+Indoors, the network and GPS fixes of a phone lying on a table wander by hundreds of metres, sometimes kilometres, while claiming 50 m. So each fix also carries `mv`: `0` when the phone's low-power motion sensors (`TYPE_SIGNIFICANT_MOTION`, and the maker's `TYPE_MOTION_DETECT` where there is one) reported no motion for the last 4 minutes, `1` when they did. A phone with neither sensor sends no `mv`. No permission is needed, and the sensors wake the app only when motion starts. An app can use it to ignore position jumps of a phone that did not move. The sensors in use are named in the app log when recording starts.
+
 ## Limits
 
 * Android only. Makers that restrict background apps (battery "restricted", auto-start lists) can stop the service: check the app's battery setting.

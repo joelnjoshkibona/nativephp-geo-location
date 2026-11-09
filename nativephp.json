@@ -1,6 +1,6 @@
 {
     "name": "blutrixx/nativephp-geo-location",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "Location in the foreground and in the background. A foreground service writes fixes to a buffer on the phone and PHP reads them later.",
     "namespace": "GeoLocation",
     "keywords": [

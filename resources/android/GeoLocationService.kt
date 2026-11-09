@@ -27,6 +27,7 @@ class GeoLocationService : Service() {
     private val listeners = ArrayList<LocationListener>()
     private var lastTime = 0L
     private var lastGpsAt = 0L   // when the last satellite fix arrived (wall clock)
+    private var motion: MotionMonitor? = null
 
     companion object {
         private const val TAG = "GeoLocation"
@@ -89,10 +90,12 @@ class GeoLocationService : Service() {
                 listeners.add(l)
                 lm.requestLocationUpdates(p, cfg.intervalSeconds * 1000L, cfg.minDistanceMeters.toFloat(), l, Looper.getMainLooper())
             }
+            motion?.stop()
+            motion = MotionMonitor(this) { AppLogBridge.w('I', "motion sensed: $it") }.also { it.start() }
             GeoStore.setStat(this, "lastError", null)
             GeoStore.setStat(this, "providers", providers.joinToString(","))
-            Log.d(TAG, "Recording with ${providers.joinToString(",")} every ${cfg.intervalSeconds}s / ${cfg.minDistanceMeters}m")
-            AppLogBridge.w('I', "location service started: ${providers.joinToString(",")} every ${cfg.intervalSeconds}s")
+            Log.d(TAG, "Recording with ${providers.joinToString(",")} every ${cfg.intervalSeconds}s / ${cfg.minDistanceMeters}m, motion sensors: ${motion?.names?.ifEmpty { "none" }}")
+            AppLogBridge.w('I', "location service started: ${providers.joinToString(",")} every ${cfg.intervalSeconds}s, motion sensors: ${motion?.names?.ifEmpty { "none" }}")
         } catch (e: SecurityException) {
             fail("Location permission is missing")
         }
@@ -106,6 +109,8 @@ class GeoLocationService : Service() {
     }
 
     private fun stopUpdates() {
+        motion?.stop()
+        motion = null
         for (l in listeners) try { manager?.removeUpdates(l) } catch (e: Exception) { }
         listeners.clear()
     }
@@ -124,6 +129,8 @@ class GeoLocationService : Service() {
             if (loc.hasSpeed()) fix.put("speed", loc.speed.toDouble())
             if (loc.hasAltitude()) fix.put("altitude", loc.altitude)
             if (loc.hasBearing()) fix.put("heading", loc.bearing.toDouble())
+            motion?.flush()   // what the sensor chip holds arrives a moment later, for the next fix
+            motion?.still()?.let { fix.put("mv", if (it) 0 else 1) }   // 0: the phone has not moved for a few minutes, 1: it has; absent: no motion sensor
             StatusBridge.snapshot(this@GeoLocationService)?.let { fix.put("st", it) }   // the phone's state at this moment (battery, network, signal), when device-utils is in the app
             GeoStore.append(this@GeoLocationService, cfg.id, fix)
             if (AppLogBridge.detailOn()) AppLogBridge.w('D', "fix ${loc.provider} accuracy=${if (loc.hasAccuracy()) loc.accuracy.toInt().toString() + "m" else "?"} total=${GeoStore.statLong(this@GeoLocationService, "fixes")}")
